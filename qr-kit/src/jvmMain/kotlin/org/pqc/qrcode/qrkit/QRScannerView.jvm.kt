@@ -65,7 +65,7 @@ public actual fun QRScannerView(
     val webcams = remember { 
         try {
             Webcam.getWebcams()
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             emptyList<Webcam>()
         }
     }
@@ -74,7 +74,7 @@ public actual fun QRScannerView(
         if (lensFacing == LensFacing.FRONT && webcams.size > 1) {
             webcams[1]
         } else {
-            webcams.firstOrNull() ?: try { Webcam.getDefault() } catch (e: Exception) { null }
+            webcams.firstOrNull() ?: try { Webcam.getDefault() } catch (e: Throwable) { null }
         }
     }
 

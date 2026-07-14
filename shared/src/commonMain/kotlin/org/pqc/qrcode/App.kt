@@ -235,6 +235,7 @@ fun GenerateScreen() {
     var payload by remember { mutableStateOf("https://github.com/parallelquintillioncoders/qrcode") }
     var selectedShape by remember { mutableStateOf(QRCodeShape.Squares) }
     var useGradient by remember { mutableStateOf(false) }
+    var qrSize by remember { mutableStateOf(240f) }
     
     val primaryBrush = if (useGradient) {
         Brush.linearGradient(
@@ -301,12 +302,32 @@ fun GenerateScreen() {
             )
         }
         
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Size slider
+        Column(modifier = Modifier.fillMaxWidth()) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text("QR Code Size", style = MaterialTheme.typography.bodyMedium)
+                Text("${qrSize.toInt()} dp", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+            }
+            Slider(
+                value = qrSize,
+                onValueChange = { qrSize = it },
+                valueRange = 120f..300f,
+                steps = 5
+            )
+        }
+
         Spacer(modifier = Modifier.height(24.dp))
         
         // QR Code Container
         Box(
             modifier = Modifier
-                .size(240.dp)
+                .size(qrSize.dp)
                 .clip(RoundedCornerShape(16.dp))
                 .border(2.dp, Color.DarkGray, RoundedCornerShape(16.dp))
                 .background(Color.White)
