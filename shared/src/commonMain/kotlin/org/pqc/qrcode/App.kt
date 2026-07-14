@@ -1,49 +1,268 @@
 package org.pqc.qrcode
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.safeContentPadding
-import androidx.compose.material3.Button
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
-import org.jetbrains.compose.resources.painterResource
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.launch
+import org.pqc.qrcode.qrkit.PermissionStatus
+import org.pqc.qrcode.qrkit.QRCodeShape
+import org.pqc.qrcode.qrkit.QRCodeView
+import org.pqc.qrcode.qrkit.QRScannerView
+import org.pqc.qrcode.qrkit.rememberCameraPermissionHandler
 
-import qrcode.shared.generated.resources.Res
-import qrcode.shared.generated.resources.compose_multiplatform
-
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-@Preview
 fun App() {
-    MaterialTheme {
-        var showContent by remember { mutableStateOf(false) }
-        Column(
-            modifier = Modifier
-                .background(MaterialTheme.colorScheme.primaryContainer)
-                .safeContentPadding()
-                .fillMaxSize(),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            Button(onClick = { showContent = !showContent }) {
-                Text("Click me!")
+    MaterialTheme(
+        colorScheme = darkColorScheme(
+            primary = Color(0xFF64B5F6),
+            onPrimary = Color.Black,
+            surface = Color(0xFF121212),
+            background = Color(0xFF1E1E1E),
+            onSurface = Color.White
+        )
+    ) {
+        var selectedTab by remember { mutableStateOf(0) }
+        val tabs = listOf("Scan QR", "Generate QR")
+        
+        Scaffold(
+            topBar = {
+                CenterAlignedTopAppBar(
+                    title = { Text("QR Kit Dashboard", style = MaterialTheme.typography.titleLarge) },
+                    colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.surface
+                    )
+                )
             }
-            AnimatedVisibility(showContent) {
-                val greeting = remember { Greeting().greet() }
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalAlignment = Alignment.CenterHorizontally,
+        ) { padding ->
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding)
+                    .background(MaterialTheme.colorScheme.background)
+            ) {
+                TabRow(
+                    selectedTabIndex = selectedTab,
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    contentColor = MaterialTheme.colorScheme.primary
                 ) {
-                    Image(painterResource(Res.drawable.compose_multiplatform), null)
-                    Text("Compose: $greeting")
+                    tabs.forEachIndexed { index, title ->
+                        Tab(
+                            selected = selectedTab == index,
+                            onClick = { selectedTab = index },
+                            text = { Text(title, style = MaterialTheme.typography.labelLarge) }
+                        )
+                    }
+                }
+                
+                Box(modifier = Modifier.fillMaxSize()) {
+                    if (selectedTab == 0) {
+                        ScanScreen()
+                    } else {
+                        GenerateScreen()
+                    }
                 }
             }
+        }
+    }
+}
+
+@Composable
+fun ScanScreen() {
+    val permissionHandler = rememberCameraPermissionHandler()
+    var permissionStatus by remember { mutableStateOf(permissionHandler.getStatus()) }
+    val scope = rememberCoroutineScope()
+    
+    var scannedResult by remember { mutableStateOf<String?>(null) }
+    var flashlightEnabled by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        permissionStatus = permissionHandler.getStatus()
+    }
+
+    if (scannedResult != null) {
+        AlertDialog(
+            onDismissRequest = { scannedResult = null },
+            title = { Text("Scanned QR Code") },
+            text = { Text(scannedResult ?: "") },
+            confirmButton = {
+                Button(onClick = { scannedResult = null }) {
+                    Text("OK")
+                }
+            }
+        )
+    }
+
+    when (permissionStatus) {
+        PermissionStatus.GRANTED -> {
+            Box(modifier = Modifier.fillMaxSize()) {
+                QRScannerView(
+                    modifier = Modifier.fillMaxSize(),
+                    flashlightEnabled = flashlightEnabled,
+                    scanWindowEnabled = true,
+                    onQrCodeDetected = { result ->
+                        if (scannedResult == null) {
+                            scannedResult = result
+                        }
+                    }
+                )
+                
+                // Overlay controls
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .align(Alignment.BottomCenter)
+                        .background(Color.Black.copy(alpha = 0.6f))
+                        .padding(24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Button(
+                        onClick = { flashlightEnabled = !flashlightEnabled },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = if (flashlightEnabled) MaterialTheme.colorScheme.primary else Color.DarkGray
+                        )
+                    ) {
+                        Text(if (flashlightEnabled) "Flashlight ON" else "Flashlight OFF")
+                    }
+                }
+            }
+        }
+        else -> {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(24.dp),
+                verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = "Camera Permission Required",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = Color.White
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "Please grant camera access to scan QR codes with your device's camera.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color.LightGray,
+                    modifier = Modifier.padding(horizontal = 24.dp),
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                )
+                Spacer(modifier = Modifier.height(24.dp))
+                Button(
+                    onClick = {
+                        scope.launch {
+                            permissionStatus = permissionHandler.requestPermission()
+                        }
+                    }
+                ) {
+                    Text("Grant Permission")
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun GenerateScreen() {
+    var payload by remember { mutableStateOf("https://github.com/parallelquintillioncoders/qrcode") }
+    var selectedShape by remember { mutableStateOf(QRCodeShape.Squares) }
+    var useGradient by remember { mutableStateOf(false) }
+    
+    val primaryBrush = if (useGradient) {
+        Brush.linearGradient(
+            colors = listOf(Color(0xFF2196F3), Color(0xFFE040FB))
+        )
+    } else {
+        null
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        OutlinedTextField(
+            value = payload,
+            onValueChange = { payload = it },
+            label = { Text("QR Code Payload") },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true
+        )
+        
+        Spacer(modifier = Modifier.height(20.dp))
+        
+        // Shape selector
+        Text(
+            text = "Pattern Shape:",
+            style = MaterialTheme.typography.titleSmall,
+            modifier = Modifier.align(Alignment.Start)
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            QRCodeShape.values().forEach { shape ->
+                val isSelected = selectedShape == shape
+                ElevatedButton(
+                    onClick = { selectedShape = shape },
+                    modifier = Modifier.weight(1f),
+                    colors = ButtonDefaults.elevatedButtonColors(
+                        containerColor = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface,
+                        contentColor = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
+                    )
+                ) {
+                    Text(shape.name, maxLines = 1)
+                }
+            }
+        }
+        
+        Spacer(modifier = Modifier.height(16.dp))
+        
+        // Gradient Toggle
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text("Use Color Gradient", style = MaterialTheme.typography.bodyMedium)
+            Switch(
+                checked = useGradient,
+                onCheckedChange = { useGradient = it }
+            )
+        }
+        
+        Spacer(modifier = Modifier.height(24.dp))
+        
+        // QR Code Container
+        Box(
+            modifier = Modifier
+                .size(240.dp)
+                .clip(RoundedCornerShape(16.dp))
+                .border(2.dp, Color.DarkGray, RoundedCornerShape(16.dp))
+                .background(Color.White)
+                .padding(16.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            QRCodeView(
+                content = payload.ifEmpty { " " },
+                modifier = Modifier.fillMaxSize(),
+                primaryColor = if (useGradient) Color.Unspecified else Color.Black,
+                primaryBrush = primaryBrush,
+                backgroundColor = Color.White,
+                shape = selectedShape
+            )
         }
     }
 }
