@@ -3,16 +3,11 @@ package org.pqc.qrcode.qrkit
 import qrcode.QRCode
 
 public actual fun exportQRCodeImage(
-    content: String,
-    shape: QRCodeShape,
-    startColorHex: String,
-    endColorHex: String,
-    useGradient: Boolean,
-    embedLogo: Boolean,
+    config: QRCodeConfig,
     fileName: String
 ) {
     try {
-        val standardData = QRCode(content).render().getBytes()
+        val standardData = QRCode(config.content).render().getBytes()
         val base64 = encodeBase64(standardData)
         triggerBrowserDownload(base64, fileName)
     } catch (e: Exception) {

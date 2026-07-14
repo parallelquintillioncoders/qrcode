@@ -9,16 +9,11 @@ import org.w3c.files.Blob
 import org.w3c.files.BlobPropertyBag
 
 public actual fun exportQRCodeImage(
-    content: String,
-    shape: QRCodeShape,
-    startColorHex: String,
-    endColorHex: String,
-    useGradient: Boolean,
-    embedLogo: Boolean,
+    config: QRCodeConfig,
     fileName: String
 ) {
     try {
-        val standardData = QRCode(content).render().getBytes()
+        val standardData = QRCode(config.content).render().getBytes()
         val array = Uint8Array(standardData.size)
         for (i in standardData.indices) {
             array.asDynamic()[i] = standardData[i]

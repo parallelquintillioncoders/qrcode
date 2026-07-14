@@ -13,19 +13,14 @@ import platform.Foundation.writeToFile
 
 @OptIn(ExperimentalForeignApi::class)
 public actual fun exportQRCodeImage(
-    content: String,
-    shape: QRCodeShape,
-    startColorHex: String,
-    endColorHex: String,
-    useGradient: Boolean,
-    embedLogo: Boolean,
+    config: QRCodeConfig,
     fileName: String
 ) {
     val paths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, true)
     val documentsDirectory = paths.firstOrNull() as? String
     if (documentsDirectory != null) {
         val filePath = "$documentsDirectory/$fileName"
-        val standardData = QRCode(content).render().getBytes()
+        val standardData = QRCode(config.content).render().getBytes()
         
         val nsData = standardData.usePinned { pinned ->
             NSData.create(bytes = pinned.addressOf(0), length = standardData.size.toULong())

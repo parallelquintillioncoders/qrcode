@@ -11,12 +11,7 @@ import java.io.File
 import javax.imageio.ImageIO
 
 public actual fun exportQRCodeImage(
-    content: String,
-    shape: QRCodeShape,
-    startColorHex: String,
-    endColorHex: String,
-    useGradient: Boolean,
-    embedLogo: Boolean,
+    config: QRCodeConfig,
     fileName: String
 ) {
     try {
@@ -28,7 +23,7 @@ public actual fun exportQRCodeImage(
             File(home, fileName)
         }
         
-        val matrix = QRCode(content).rawData
+        val matrix = QRCode(config.content).rawData
         val size = 512
         val image = BufferedImage(size, size, BufferedImage.TYPE_INT_ARGB)
         val g2 = image.createGraphics()
@@ -40,8 +35,8 @@ public actual fun exportQRCodeImage(
         val cols = matrix.size
         val cellSize = size.toFloat() / cols
         
-        val startColor = parseAwtHexColor(startColorHex, AwtColor.BLACK)
-        val endColor = parseAwtHexColor(endColorHex, AwtColor.BLACK)
+        val startColor = parseAwtHexColor(config.startColorHex, AwtColor.BLACK)
+        val endColor = parseAwtHexColor(config.endColorHex, AwtColor.BLACK)
         
         for (row in 0 until cols) {
             for (col in 0 until cols) {
@@ -50,14 +45,14 @@ public actual fun exportQRCodeImage(
                     val x = col * cellSize
                     val y = row * cellSize
                     
-                    if (useGradient) {
+                    if (config.useGradient) {
                         val gp = GradientPaint(0f, 0f, startColor, size.toFloat(), size.toFloat(), endColor)
                         g2.paint = gp
                     } else {
                         g2.color = startColor
                     }
                     
-                    when (shape) {
+                    when (config.shape) {
                         QRCodeShape.Squares -> {
                             g2.fillRect(x.toInt(), y.toInt(), (cellSize + 1f).toInt(), (cellSize + 1f).toInt())
                         }
@@ -78,7 +73,7 @@ public actual fun exportQRCodeImage(
             }
         }
         
-        if (embedLogo) {
+        if (config.embedLogo) {
             val logoSize = (size * 0.2f).toInt()
             val logoX = (size - logoSize) / 2
             val logoY = (size - logoSize) / 2

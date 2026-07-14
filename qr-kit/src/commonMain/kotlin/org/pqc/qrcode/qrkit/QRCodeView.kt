@@ -26,6 +26,25 @@ public enum class QRCodeShape {
 
 @Composable
 public fun QRCodeView(
+    config: QRCodeConfig,
+    modifier: Modifier = Modifier,
+    logo: Painter? = null,
+    logoScale: Float = 0.22f
+) {
+    QRCodeView(
+        content = config.content,
+        modifier = modifier,
+        primaryColor = config.primaryColor,
+        primaryBrush = config.primaryBrush,
+        backgroundColor = config.backgroundColor,
+        shape = config.shape,
+        logo = logo,
+        logoScale = logoScale
+    )
+}
+
+@Composable
+public fun QRCodeView(
     content: String,
     modifier: Modifier = Modifier,
     primaryColor: Color = Color.Black,

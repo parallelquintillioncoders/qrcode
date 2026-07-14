@@ -12,16 +12,11 @@ import java.io.File
 import java.io.FileOutputStream
 
 public actual fun exportQRCodeImage(
-    content: String,
-    shape: QRCodeShape,
-    startColorHex: String,
-    endColorHex: String,
-    useGradient: Boolean,
-    embedLogo: Boolean,
+    config: QRCodeConfig,
     fileName: String
 ) {
     try {
-        val matrix = QRCode(content).rawData
+        val matrix = QRCode(config.content).rawData
         val size = 512
         val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bitmap)
@@ -34,10 +29,10 @@ public actual fun exportQRCodeImage(
         val cols = matrix.size
         val cellSize = size.toFloat() / cols
         
-        val startColor = parseAndroidHexColor(startColorHex, android.graphics.Color.BLACK)
-        val endColor = parseAndroidHexColor(endColorHex, android.graphics.Color.BLACK)
+        val startColor = parseAndroidHexColor(config.startColorHex, android.graphics.Color.BLACK)
+        val endColor = parseAndroidHexColor(config.endColorHex, android.graphics.Color.BLACK)
         
-        if (useGradient) {
+        if (config.useGradient) {
             paint.shader = LinearGradient(0f, 0f, size.toFloat(), size.toFloat(), startColor, endColor, Shader.TileMode.CLAMP)
         } else {
             paint.color = startColor
@@ -50,7 +45,7 @@ public actual fun exportQRCodeImage(
                     val x = col * cellSize
                     val y = row * cellSize
                     
-                    when (shape) {
+                    when (config.shape) {
                         QRCodeShape.Squares -> {
                             canvas.drawRect(x, y, x + cellSize + 1f, y + cellSize + 1f, paint)
                         }
@@ -72,7 +67,7 @@ public actual fun exportQRCodeImage(
         }
         
         // Draw logo placeholder
-        if (embedLogo) {
+        if (config.embedLogo) {
             paint.shader = null
             val logoSize = (size * 0.2f).toInt()
             val logoX = (size - logoSize) / 2f

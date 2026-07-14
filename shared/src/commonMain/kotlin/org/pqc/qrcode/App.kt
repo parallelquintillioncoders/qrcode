@@ -16,6 +16,7 @@ import kotlinx.coroutines.launch
 import org.pqc.qrcode.qrkit.PermissionStatus
 import org.pqc.qrcode.qrkit.QRCodeShape
 import org.pqc.qrcode.qrkit.QRCodeView
+import org.pqc.qrcode.qrkit.QRCodeConfig
 import org.pqc.qrcode.qrkit.QRScannerView
 import org.pqc.qrcode.qrkit.exportQRCodeImage
 import org.pqc.qrcode.qrkit.rememberCameraPermissionHandler
@@ -311,6 +312,21 @@ fun GenerateScreen() {
         null
     }
 
+    val qrConfig = remember(payload, selectedShape, selectedGradientPreset, customStartHex, customEndHex, qrSize, embedLogo) {
+        QRCodeConfig(
+            content = payload,
+            shape = selectedShape,
+            primaryColor = if (gradientColors != null) Color.Unspecified else Color.Black,
+            primaryBrush = primaryBrush,
+            backgroundColor = Color.White,
+            startColorHex = activeStartHex,
+            endColorHex = activeEndHex,
+            useGradient = (selectedGradientPreset != 0),
+            embedLogo = embedLogo,
+            sizeDp = qrSize.toInt()
+        )
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -477,12 +493,8 @@ fun GenerateScreen() {
             contentAlignment = Alignment.Center
         ) {
             QRCodeView(
-                content = payload.ifEmpty { " " },
+                config = qrConfig,
                 modifier = Modifier.fillMaxSize(),
-                primaryColor = if (gradientColors != null) Color.Unspecified else Color.Black,
-                primaryBrush = primaryBrush,
-                backgroundColor = Color.White,
-                shape = selectedShape,
                 logo = logoPainter,
                 logoScale = 0.22f
             )
@@ -493,12 +505,7 @@ fun GenerateScreen() {
         Button(
             onClick = {
                 exportQRCodeImage(
-                    content = payload,
-                    shape = selectedShape,
-                    startColorHex = activeStartHex,
-                    endColorHex = activeEndHex,
-                    useGradient = (selectedGradientPreset != 0),
-                    embedLogo = embedLogo,
+                    config = qrConfig,
                     fileName = "qrcode.png"
                 )
                 showExportSuccess = true
