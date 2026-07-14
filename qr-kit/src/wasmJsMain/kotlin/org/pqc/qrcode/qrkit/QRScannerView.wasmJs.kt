@@ -14,10 +14,13 @@ import androidx.compose.ui.unit.dp
 @Composable
 public actual fun QRScannerView(
     modifier: Modifier,
+    lensFacing: LensFacing,
+    targetResolution: ScannerResolution?,
     flashlightEnabled: Boolean,
     scanWindowEnabled: Boolean,
     onQrCodeDetected: (String) -> Unit,
-    onPermissionDenied: () -> Unit
+    onPermissionDenied: () -> Unit,
+    onCameraError: (Throwable) -> Unit
 ) {
     Box(
         modifier = modifier

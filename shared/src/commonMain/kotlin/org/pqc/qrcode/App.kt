@@ -84,6 +84,8 @@ fun ScanScreen() {
     
     var scannedResult by remember { mutableStateOf<String?>(null) }
     var flashlightEnabled by remember { mutableStateOf(false) }
+    var lensFacing by remember { mutableStateOf(org.pqc.qrcode.qrkit.LensFacing.BACK) }
+    var selectedResolution by remember { mutableStateOf<org.pqc.qrcode.qrkit.ScannerResolution?>(null) }
 
     LaunchedEffect(Unit) {
         permissionStatus = permissionHandler.getStatus()
@@ -107,6 +109,8 @@ fun ScanScreen() {
             Box(modifier = Modifier.fillMaxSize()) {
                 QRScannerView(
                     modifier = Modifier.fillMaxSize(),
+                    lensFacing = lensFacing,
+                    targetResolution = selectedResolution,
                     flashlightEnabled = flashlightEnabled,
                     scanWindowEnabled = true,
                     onQrCodeDetected = { result ->
@@ -121,17 +125,71 @@ fun ScanScreen() {
                     modifier = Modifier
                         .fillMaxWidth()
                         .align(Alignment.BottomCenter)
-                        .background(Color.Black.copy(alpha = 0.6f))
-                        .padding(24.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
+                        .background(Color.Black.copy(alpha = 0.75f))
+                        .padding(16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    Button(
-                        onClick = { flashlightEnabled = !flashlightEnabled },
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = if (flashlightEnabled) MaterialTheme.colorScheme.primary else Color.DarkGray
-                        )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(if (flashlightEnabled) "Flashlight ON" else "Flashlight OFF")
+                        Button(
+                            onClick = { 
+                                lensFacing = if (lensFacing == org.pqc.qrcode.qrkit.LensFacing.BACK) {
+                                    org.pqc.qrcode.qrkit.LensFacing.FRONT
+                                } else {
+                                    org.pqc.qrcode.qrkit.LensFacing.BACK
+                                }
+                            },
+                            modifier = Modifier.weight(1f),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        ) {
+                            Text("Camera: ${lensFacing.name}")
+                        }
+
+                        Button(
+                            onClick = { flashlightEnabled = !flashlightEnabled },
+                            modifier = Modifier.weight(1f),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = if (flashlightEnabled) MaterialTheme.colorScheme.primary else Color.DarkGray
+                            )
+                        ) {
+                            Text(if (flashlightEnabled) "Flash ON" else "Flash OFF")
+                        }
+                    }
+
+                    // Resolution presets
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        val resolutions = listOf(
+                            "Default" to null,
+                            "SD (480p)" to org.pqc.qrcode.qrkit.ScannerResolution(640, 480),
+                            "HD (720p)" to org.pqc.qrcode.qrkit.ScannerResolution(1280, 720),
+                            "FHD (1080p)" to org.pqc.qrcode.qrkit.ScannerResolution(1920, 1080)
+                        )
+
+                        resolutions.forEach { (label, res) ->
+                            val isSelected = selectedResolution == res
+                            ElevatedButton(
+                                onClick = { selectedResolution = res },
+                                modifier = Modifier.weight(1f),
+                                contentPadding = PaddingValues(horizontal = 4.dp, vertical = 8.dp),
+                                colors = ButtonDefaults.elevatedButtonColors(
+                                    containerColor = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface,
+                                    contentColor = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
+                                )
+                            ) {
+                                Text(label, style = MaterialTheme.typography.labelSmall, maxLines = 1)
+                            }
+                        }
                     }
                 }
             }

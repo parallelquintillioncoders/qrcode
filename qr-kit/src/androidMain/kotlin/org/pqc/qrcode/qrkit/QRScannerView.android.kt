@@ -29,10 +29,13 @@ import java.util.concurrent.Executors
 @Composable
 public actual fun QRScannerView(
     modifier: Modifier,
+    lensFacing: LensFacing,
+    targetResolution: ScannerResolution?,
     flashlightEnabled: Boolean,
     scanWindowEnabled: Boolean,
     onQrCodeDetected: (String) -> Unit,
-    onPermissionDenied: () -> Unit
+    onPermissionDenied: () -> Unit,
+    onCameraError: (Throwable) -> Unit
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -53,19 +56,28 @@ public actual fun QRScannerView(
         cameraControl?.enableTorch(flashlightEnabled)
     }
 
-    DisposableEffect(Unit) {
+    DisposableEffect(lensFacing, targetResolution) {
         val cameraProviderFuture = ProcessCameraProvider.getInstance(context)
         
         cameraProviderFuture.addListener({
             val cameraProvider = cameraProviderFuture.get()
             
-            val preview = Preview.Builder().build().apply {
+            val previewBuilder = Preview.Builder()
+            val analysisBuilder = ImageAnalysis.Builder()
+                .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+                
+            if (targetResolution != null) {
+                @Suppress("DEPRECATION")
+                previewBuilder.setTargetResolution(android.util.Size(targetResolution.width, targetResolution.height))
+                @Suppress("DEPRECATION")
+                analysisBuilder.setTargetResolution(android.util.Size(targetResolution.width, targetResolution.height))
+            }
+            
+            val preview = previewBuilder.build().apply {
                 surfaceProvider = previewView.surfaceProvider
             }
             
-            val imageAnalysis = ImageAnalysis.Builder()
-                .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
-                .build()
+            val imageAnalysis = analysisBuilder.build()
                 
             imageAnalysis.setAnalyzer(cameraExecutor) { imageProxy ->
                 val mediaImage = imageProxy.image
@@ -87,7 +99,11 @@ public actual fun QRScannerView(
                 }
             }
             
-            val cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
+            val cameraSelector = if (lensFacing == LensFacing.FRONT) {
+                CameraSelector.DEFAULT_FRONT_CAMERA
+            } else {
+                CameraSelector.DEFAULT_BACK_CAMERA
+            }
             
             try {
                 cameraProvider.unbindAll()
@@ -100,7 +116,7 @@ public actual fun QRScannerView(
                 cameraControl = camera.cameraControl
                 cameraControl?.enableTorch(flashlightEnabled)
             } catch (e: Exception) {
-                e.printStackTrace()
+                onCameraError(e)
             }
         }, ContextCompat.getMainExecutor(context))
         

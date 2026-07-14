@@ -38,17 +38,28 @@ class QRMetadataDelegate(
 @Composable
 public actual fun QRScannerView(
     modifier: Modifier,
+    lensFacing: LensFacing,
+    targetResolution: ScannerResolution?,
     flashlightEnabled: Boolean,
     scanWindowEnabled: Boolean,
     onQrCodeDetected: (String) -> Unit,
-    onPermissionDenied: () -> Unit
+    onPermissionDenied: () -> Unit,
+    onCameraError: (Throwable) -> Unit
 ) {
     val delegate = remember { QRMetadataDelegate(onQrCodeDetected) }
     val captureSession = remember { AVCaptureSession() }
-    val device = AVCaptureDevice.defaultDeviceWithMediaType(AVMediaTypeVideo)
+    
+    val device = remember(lensFacing) {
+        val position = if (lensFacing == LensFacing.FRONT) AVCaptureDevicePositionFront else AVCaptureDevicePositionBack
+        AVCaptureDevice.defaultDeviceWithDeviceType(
+            deviceType = AVCaptureDeviceTypeBuiltInWideAngleCamera,
+            mediaType = AVMediaTypeVideo,
+            position = position
+        )
+    }
     
     // Toggle flashlight/torch
-    LaunchedEffect(flashlightEnabled) {
+    LaunchedEffect(flashlightEnabled, device) {
         if (device != null && device.hasTorch) {
             try {
                 if (device.lockForConfiguration(null)) {
@@ -61,7 +72,21 @@ public actual fun QRScannerView(
         }
     }
 
-    DisposableEffect(Unit) {
+    // Apply session preset based on resolution
+    LaunchedEffect(targetResolution, captureSession) {
+        if (targetResolution != null) {
+            val preset = when {
+                targetResolution.width >= 1920 || targetResolution.height >= 1080 -> AVCaptureSessionPreset1920x1080
+                targetResolution.width >= 1280 || targetResolution.height >= 720 -> AVCaptureSessionPreset1280x720
+                else -> AVCaptureSessionPreset640x480
+            }
+            if (captureSession.canSetSessionPreset(preset)) {
+                captureSession.sessionPreset = preset
+            }
+        }
+    }
+
+    DisposableEffect(lensFacing) {
         if (device != null) {
             try {
                 val input = AVCaptureDeviceInput.deviceInputWithDevice(device, null) as? AVCaptureDeviceInput
@@ -78,7 +103,7 @@ public actual fun QRScannerView(
                 
                 captureSession.startRunning()
             } catch (e: Exception) {
-                // Ignore
+                onCameraError(e)
             }
         }
         

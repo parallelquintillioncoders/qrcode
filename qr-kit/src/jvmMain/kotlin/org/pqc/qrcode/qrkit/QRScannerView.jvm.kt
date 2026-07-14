@@ -54,33 +54,51 @@ class BufferedImageLuminanceSource(private val image: BufferedImage) : Luminance
 @Composable
 public actual fun QRScannerView(
     modifier: Modifier,
+    lensFacing: LensFacing,
+    targetResolution: ScannerResolution?,
     flashlightEnabled: Boolean,
     scanWindowEnabled: Boolean,
     onQrCodeDetected: (String) -> Unit,
-    onPermissionDenied: () -> Unit
+    onPermissionDenied: () -> Unit,
+    onCameraError: (Throwable) -> Unit
 ) {
-    val webcam = remember { 
+    val webcams = remember { 
         try {
-            Webcam.getDefault()
+            Webcam.getWebcams()
         } catch (e: Exception) {
-            null
+            emptyList<Webcam>()
+        }
+    }
+    
+    val webcam = remember(lensFacing, webcams) {
+        if (lensFacing == LensFacing.FRONT && webcams.size > 1) {
+            webcams[1]
+        } else {
+            webcams.firstOrNull() ?: try { Webcam.getDefault() } catch (e: Exception) { null }
         }
     }
 
     val executor = remember { Executors.newSingleThreadScheduledExecutor() }
 
-    DisposableEffect(webcam) {
+    DisposableEffect(webcam, targetResolution) {
         if (webcam != null) {
             if (!webcam.isOpen) {
                 try {
-                    webcam.viewSize = Dimension(640, 480)
+                    val width = targetResolution?.width ?: 640
+                    val height = targetResolution?.height ?: 480
+                    // Webcam library requires matching one of supported sizes
+                    val supportedSizes = webcam.viewSizes
+                    val matchedSize = supportedSizes.firstOrNull { 
+                        it.width == width && it.height == height 
+                    } ?: supportedSizes.firstOrNull { it.width >= 640 } ?: supportedSizes.last()
+                    
+                    webcam.viewSize = matchedSize
                     webcam.open()
                 } catch (e: Exception) {
-                    // Try opening with default size
                     try {
                         webcam.open()
                     } catch (ex: Exception) {
-                        ex.printStackTrace()
+                        onCameraError(ex)
                     }
                 }
             }
