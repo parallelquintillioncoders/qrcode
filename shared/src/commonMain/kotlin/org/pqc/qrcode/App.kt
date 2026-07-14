@@ -17,6 +17,7 @@ import org.pqc.qrcode.qrkit.PermissionStatus
 import org.pqc.qrcode.qrkit.QRCodeShape
 import org.pqc.qrcode.qrkit.QRCodeView
 import org.pqc.qrcode.qrkit.QRScannerView
+import org.pqc.qrcode.qrkit.exportQRCodeImage
 import org.pqc.qrcode.qrkit.rememberCameraPermissionHandler
 import org.jetbrains.compose.resources.painterResource
 import qrcode.shared.generated.resources.Res
@@ -468,6 +469,25 @@ fun GenerateScreen() {
                 logo = logoPainter,
                 logoScale = 0.22f
             )
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Button(
+            onClick = {
+                exportQRCodeImage(
+                    content = payload,
+                    shape = selectedShape,
+                    startColorHex = customStartHex,
+                    endColorHex = customEndHex,
+                    useGradient = (gradientColors != null),
+                    embedLogo = embedLogo,
+                    fileName = "qrcode.png"
+                )
+            },
+            modifier = Modifier.fillMaxWidth(0.8f)
+        ) {
+            Text("Export QR Code Image")
         }
     }
 }
