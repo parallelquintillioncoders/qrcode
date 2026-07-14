@@ -62,19 +62,33 @@ public actual fun QRScannerView(
     onPermissionDenied: () -> Unit,
     onCameraError: (Throwable) -> Unit
 ) {
-    val webcams = remember { 
-        try {
-            Webcam.getWebcams()
-        } catch (e: Throwable) {
+    val isMacArm64 = remember {
+        val os = System.getProperty("os.name") ?: ""
+        val arch = System.getProperty("os.arch") ?: ""
+        os.contains("Mac", ignoreCase = true) && (arch.contains("aarch64", ignoreCase = true) || arch.contains("arm64", ignoreCase = true))
+    }
+
+    val webcams = remember(isMacArm64) { 
+        if (isMacArm64) {
             emptyList<Webcam>()
+        } else {
+            try {
+                Webcam.getWebcams()
+            } catch (e: Throwable) {
+                emptyList<Webcam>()
+            }
         }
     }
     
-    val webcam = remember(lensFacing, webcams) {
-        if (lensFacing == LensFacing.FRONT && webcams.size > 1) {
-            webcams[1]
+    val webcam = remember(lensFacing, webcams, isMacArm64) {
+        if (isMacArm64) {
+            null
         } else {
-            webcams.firstOrNull() ?: try { Webcam.getDefault() } catch (e: Throwable) { null }
+            if (lensFacing == LensFacing.FRONT && webcams.size > 1) {
+                webcams[1]
+            } else {
+                webcams.firstOrNull() ?: try { Webcam.getDefault() } catch (e: Throwable) { null }
+            }
         }
     }
 

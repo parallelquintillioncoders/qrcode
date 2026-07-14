@@ -18,6 +18,9 @@ import org.pqc.qrcode.qrkit.QRCodeShape
 import org.pqc.qrcode.qrkit.QRCodeView
 import org.pqc.qrcode.qrkit.QRScannerView
 import org.pqc.qrcode.qrkit.rememberCameraPermissionHandler
+import org.jetbrains.compose.resources.painterResource
+import qrcode.shared.generated.resources.Res
+import qrcode.shared.generated.resources.compose_multiplatform
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -234,13 +237,25 @@ fun ScanScreen() {
 fun GenerateScreen() {
     var payload by remember { mutableStateOf("https://github.com/parallelquintillioncoders/qrcode") }
     var selectedShape by remember { mutableStateOf(QRCodeShape.Squares) }
-    var useGradient by remember { mutableStateOf(false) }
+    var selectedGradientPreset by remember { mutableStateOf(0) }
+    var embedLogo by remember { mutableStateOf(false) }
     var qrSize by remember { mutableStateOf(240f) }
     
-    val primaryBrush = if (useGradient) {
-        Brush.linearGradient(
-            colors = listOf(Color(0xFF2196F3), Color(0xFFE040FB))
-        )
+    val gradientColors = when (selectedGradientPreset) {
+        1 -> listOf(Color(0xFFFF5722), Color(0xFFE91E63)) // Sunset
+        2 -> listOf(Color(0xFF00E676), Color(0xFF2979FF)) // Ocean
+        3 -> listOf(Color(0xFF2196F3), Color(0xFFE040FB)) // Neon
+        else -> null
+    }
+
+    val primaryBrush = if (gradientColors != null) {
+        Brush.linearGradient(colors = gradientColors)
+    } else {
+        null
+    }
+
+    val logoPainter = if (embedLogo) {
+        painterResource(Res.drawable.compose_multiplatform)
     } else {
         null
     }
@@ -259,7 +274,7 @@ fun GenerateScreen() {
             singleLine = true
         )
         
-        Spacer(modifier = Modifier.height(20.dp))
+        Spacer(modifier = Modifier.height(16.dp))
         
         // Shape selector
         Text(
@@ -267,7 +282,7 @@ fun GenerateScreen() {
             style = MaterialTheme.typography.titleSmall,
             modifier = Modifier.align(Alignment.Start)
         )
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(6.dp))
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -289,16 +304,46 @@ fun GenerateScreen() {
         
         Spacer(modifier = Modifier.height(16.dp))
         
-        // Gradient Toggle
+        // Gradient presets selector
+        Text(
+            text = "Color / Gradient Style:",
+            style = MaterialTheme.typography.titleSmall,
+            modifier = Modifier.align(Alignment.Start)
+        )
+        Spacer(modifier = Modifier.height(6.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            val presets = listOf("Solid Black", "Sunset", "Ocean", "Neon")
+            presets.forEachIndexed { index, label ->
+                val isSelected = selectedGradientPreset == index
+                ElevatedButton(
+                    onClick = { selectedGradientPreset = index },
+                    modifier = Modifier.weight(1f),
+                    contentPadding = PaddingValues(horizontal = 4.dp, vertical = 6.dp),
+                    colors = ButtonDefaults.elevatedButtonColors(
+                        containerColor = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface,
+                        contentColor = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
+                    )
+                ) {
+                    Text(label, style = MaterialTheme.typography.labelSmall, maxLines = 1)
+                }
+            }
+        }
+        
+        Spacer(modifier = Modifier.height(16.dp))
+        
+        // Logo Toggle
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Text("Use Color Gradient", style = MaterialTheme.typography.bodyMedium)
+            Text("Embed Center Logo Overlay", style = MaterialTheme.typography.bodyMedium)
             Switch(
-                checked = useGradient,
-                onCheckedChange = { useGradient = it }
+                checked = embedLogo,
+                onCheckedChange = { embedLogo = it }
             )
         }
         
@@ -322,7 +367,7 @@ fun GenerateScreen() {
             )
         }
 
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(20.dp))
         
         // QR Code Container
         Box(
@@ -337,10 +382,12 @@ fun GenerateScreen() {
             QRCodeView(
                 content = payload.ifEmpty { " " },
                 modifier = Modifier.fillMaxSize(),
-                primaryColor = if (useGradient) Color.Unspecified else Color.Black,
+                primaryColor = if (gradientColors != null) Color.Unspecified else Color.Black,
                 primaryBrush = primaryBrush,
                 backgroundColor = Color.White,
-                shape = selectedShape
+                shape = selectedShape,
+                logo = logoPainter,
+                logoScale = 0.22f
             )
         }
     }
