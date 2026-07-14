@@ -283,6 +283,22 @@ fun GenerateScreen() {
         else -> null
     }
 
+    val activeStartHex = when (selectedGradientPreset) {
+        0 -> "#000000"
+        1 -> "#FF5722"
+        2 -> "#00E676"
+        3 -> "#2196F3"
+        else -> customStartHex
+    }
+
+    val activeEndHex = when (selectedGradientPreset) {
+        0 -> "#000000"
+        1 -> "#E91E63"
+        2 -> "#2979FF"
+        3 -> "#E040FB"
+        else -> customEndHex
+    }
+
     val primaryBrush = if (gradientColors != null) {
         Brush.linearGradient(colors = gradientColors)
     } else {
@@ -479,9 +495,9 @@ fun GenerateScreen() {
                 exportQRCodeImage(
                     content = payload,
                     shape = selectedShape,
-                    startColorHex = customStartHex,
-                    endColorHex = customEndHex,
-                    useGradient = (gradientColors != null),
+                    startColorHex = activeStartHex,
+                    endColorHex = activeEndHex,
+                    useGradient = (selectedGradientPreset != 0),
                     embedLogo = embedLogo,
                     fileName = "qrcode.png"
                 )
