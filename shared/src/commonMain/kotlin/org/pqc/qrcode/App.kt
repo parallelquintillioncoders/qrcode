@@ -269,6 +269,7 @@ fun GenerateScreen() {
     
     var customStartHex by remember { mutableStateOf("#FF5722") }
     var customEndHex by remember { mutableStateOf("#E91E63") }
+    var showExportSuccess by remember { mutableStateOf(false) }
     
     val gradientColors = when (selectedGradientPreset) {
         1 -> listOf(Color(0xFFFF5722), Color(0xFFE91E63)) // Sunset
@@ -484,10 +485,24 @@ fun GenerateScreen() {
                     embedLogo = embedLogo,
                     fileName = "qrcode.png"
                 )
+                showExportSuccess = true
             },
             modifier = Modifier.fillMaxWidth(0.8f)
         ) {
             Text("Export QR Code Image")
+        }
+
+        if (showExportSuccess) {
+            AlertDialog(
+                onDismissRequest = { showExportSuccess = false },
+                title = { Text("Export Successful") },
+                text = { Text("Your customized QR code has been successfully saved to your system's Downloads folder as 'qrcode.png'.") },
+                confirmButton = {
+                    Button(onClick = { showExportSuccess = false }) {
+                        Text("OK")
+                    }
+                }
+            )
         }
     }
 }
