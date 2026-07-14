@@ -24,7 +24,9 @@ public actual fun exportQRCodeImage(
         }
         
         val matrix = QRCode(config.content).rawData
-        val size = 512
+        // Scale the user's size slightly for better export quality, or just use it. Let's use config.sizeDp * 2 for higher res, or just max(512, config.sizeDp)
+        val exportScale = 2f
+        val size = (config.sizeDp * exportScale).toInt()
         val image = BufferedImage(size, size, BufferedImage.TYPE_INT_ARGB)
         val g2 = image.createGraphics()
         
@@ -32,8 +34,15 @@ public actual fun exportQRCodeImage(
         g2.color = AwtColor.WHITE
         g2.fillRect(0, 0, size, size)
         
+        val actualPadding = config.paddingPx * exportScale
+        val availableSize = size - (actualPadding * 2)
+        
         val cols = matrix.size
-        val cellSize = size.toFloat() / cols
+        val cellSize = availableSize / cols
+        
+        val actualQrSize = cellSize * cols
+        val xOffset = (size - actualQrSize) / 2f
+        val yOffset = (size - actualQrSize) / 2f
         
         val startColor = parseAwtHexColor(config.startColorHex, AwtColor.BLACK)
         val endColor = parseAwtHexColor(config.endColorHex, AwtColor.BLACK)
@@ -42,8 +51,8 @@ public actual fun exportQRCodeImage(
             for (col in 0 until cols) {
                 val cell = matrix[row][col]
                 if (cell != null && cell.dark) {
-                    val x = col * cellSize
-                    val y = row * cellSize
+                    val x = xOffset + col * cellSize
+                    val y = yOffset + row * cellSize
                     
                     if (config.useGradient) {
                         val gp = GradientPaint(0f, 0f, startColor, size.toFloat(), size.toFloat(), endColor)
@@ -74,7 +83,7 @@ public actual fun exportQRCodeImage(
         }
         
         if (config.embedLogo) {
-            val logoSize = (size * 0.2f).toInt()
+            val logoSize = (actualQrSize * 0.2f).toInt()
             val logoX = (size - logoSize) / 2
             val logoY = (size - logoSize) / 2
             g2.color = AwtColor.WHITE

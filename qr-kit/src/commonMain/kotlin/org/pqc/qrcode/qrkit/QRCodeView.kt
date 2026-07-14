@@ -81,8 +81,10 @@ public fun QRCodeView(
             val actualPadding = paddingPx.toFloat()
             val availableSize = size.minDimension - (actualPadding * 2)
             val cellSize = availableSize / matrixSize
-            val xOffset = (size.width - availableSize) / 2 + actualPadding
-            val yOffset = (size.height - availableSize) / 2 + actualPadding
+            
+            val actualQrSize = cellSize * matrixSize
+            val xOffset = (size.width - actualQrSize) / 2
+            val yOffset = (size.height - actualQrSize) / 2
             
             // Calculate center region to skip if logo is present
             val center = matrixSize / 2f
