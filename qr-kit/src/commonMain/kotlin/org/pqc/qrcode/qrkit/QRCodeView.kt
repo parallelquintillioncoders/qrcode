@@ -38,6 +38,7 @@ public fun QRCodeView(
         primaryBrush = config.primaryBrush,
         backgroundColor = config.backgroundColor,
         shape = config.shape,
+        paddingPx = config.paddingPx,
         logo = logo,
         logoScale = logoScale
     )
@@ -51,6 +52,7 @@ public fun QRCodeView(
     primaryBrush: Brush? = null,
     backgroundColor: Color = Color.White,
     shape: QRCodeShape = QRCodeShape.Squares,
+    paddingPx: Int = 16,
     logo: Painter? = null,
     logoScale: Float = 0.22f
 ) {
@@ -75,9 +77,12 @@ public fun QRCodeView(
             // Draw background
             drawRect(color = backgroundColor)
             
-            val cellSize = size.minDimension / matrixSize
-            val xOffset = (size.width - (cellSize * matrixSize)) / 2
-            val yOffset = (size.height - (cellSize * matrixSize)) / 2
+            // Apply padding to available drawing area
+            val actualPadding = paddingPx.toFloat()
+            val availableSize = size.minDimension - (actualPadding * 2)
+            val cellSize = availableSize / matrixSize
+            val xOffset = (size.width - availableSize) / 2 + actualPadding
+            val yOffset = (size.height - availableSize) / 2 + actualPadding
             
             // Calculate center region to skip if logo is present
             val center = matrixSize / 2f

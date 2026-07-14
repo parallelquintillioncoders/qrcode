@@ -17,5 +17,6 @@ public data class QRCodeConfig(
     val endColorHex: String = "#000000",
     val useGradient: Boolean = false,
     val embedLogo: Boolean = false,
-    val sizeDp: Int = 240
+    val sizeDp: Int = 240,
+    val paddingPx: Int = 16
 )

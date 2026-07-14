@@ -12,6 +12,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import androidx.compose.animation.AnimatedVisibility
 import kotlinx.coroutines.launch
 import org.pqc.qrcode.qrkit.PermissionStatus
 import org.pqc.qrcode.qrkit.QRCodeShape
@@ -267,6 +268,9 @@ fun GenerateScreen() {
     var embedLogo by remember { mutableStateOf(false) }
     var qrSize by remember { mutableStateOf(240f) }
     var sizeInputText by remember { mutableStateOf("240") }
+    var qrPadding by remember { mutableStateOf(16f) }
+    var paddingInputText by remember { mutableStateOf("16") }
+    var showSettings by remember { mutableStateOf(false) }
     
     var customStartHex by remember { mutableStateOf("#FF5722") }
     var customEndHex by remember { mutableStateOf("#E91E63") }
@@ -312,7 +316,7 @@ fun GenerateScreen() {
         null
     }
 
-    val qrConfig = remember(payload, selectedShape, selectedGradientPreset, customStartHex, customEndHex, qrSize, embedLogo) {
+    val qrConfig = remember(payload, selectedShape, selectedGradientPreset, customStartHex, customEndHex, qrSize, embedLogo, qrPadding) {
         QRCodeConfig(
             content = payload,
             shape = selectedShape,
@@ -323,7 +327,8 @@ fun GenerateScreen() {
             endColorHex = activeEndHex,
             useGradient = (selectedGradientPreset != 0),
             embedLogo = embedLogo,
-            sizeDp = qrSize.toInt()
+            sizeDp = qrSize.toInt(),
+            paddingPx = qrPadding.toInt()
         )
     }
 
@@ -333,7 +338,18 @@ fun GenerateScreen() {
             .padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        OutlinedTextField(
+        Button(
+            onClick = { showSettings = !showSettings },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text(if (showSettings) "Hide Settings" else "Show Settings")
+        }
+        
+        Spacer(modifier = Modifier.height(16.dp))
+        
+        AnimatedVisibility(visible = showSettings) {
+            Column(modifier = Modifier.fillMaxWidth()) {
+                OutlinedTextField(
             value = payload,
             onValueChange = { payload = it },
             label = { Text("QR Code Payload") },
@@ -478,6 +494,50 @@ fun GenerateScreen() {
                 valueRange = 100f..400f,
                 steps = 6
             )
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Padding slider and Custom Padding input field
+        Column(modifier = Modifier.fillMaxWidth()) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text("QR Code Padding (px)", style = MaterialTheme.typography.bodyMedium)
+                OutlinedTextField(
+                    value = paddingInputText,
+                    onValueChange = { newValue ->
+                        if (newValue.all { it.isDigit() } && newValue.length <= 3) {
+                            paddingInputText = newValue
+                            newValue.toIntOrNull()?.let { parsed ->
+                                if (parsed in 0..100) {
+                                    qrPadding = parsed.toFloat()
+                                }
+                            }
+                        }
+                    },
+                    modifier = Modifier.width(80.dp),
+                    singleLine = true,
+                    textStyle = MaterialTheme.typography.bodyMedium,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                        unfocusedBorderColor = Color.DarkGray
+                    )
+                )
+            }
+            Slider(
+                value = qrPadding,
+                onValueChange = { 
+                    qrPadding = it
+                    paddingInputText = it.toInt().toString()
+                },
+                valueRange = 0f..100f,
+                steps = 20
+            )
+        }
+            }
         }
 
         Spacer(modifier = Modifier.height(20.dp))
