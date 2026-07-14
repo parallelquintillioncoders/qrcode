@@ -22,6 +22,30 @@ import org.jetbrains.compose.resources.painterResource
 import qrcode.shared.generated.resources.Res
 import qrcode.shared.generated.resources.compose_multiplatform
 
+fun parseHexColor(hex: String, fallback: Color): Color {
+    val clean = hex.trim().removePrefix("#")
+    return try {
+        if (clean.length == 6) {
+            Color(
+                red = clean.substring(0, 2).toInt(16),
+                green = clean.substring(2, 4).toInt(16),
+                blue = clean.substring(4, 6).toInt(16)
+            )
+        } else if (clean.length == 8) {
+            Color(
+                alpha = clean.substring(0, 2).toInt(16),
+                red = clean.substring(2, 4).toInt(16),
+                green = clean.substring(4, 6).toInt(16),
+                blue = clean.substring(6, 8).toInt(16)
+            )
+        } else {
+            fallback
+        }
+    } catch (e: Exception) {
+        fallback
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun App() {
@@ -240,11 +264,20 @@ fun GenerateScreen() {
     var selectedGradientPreset by remember { mutableStateOf(0) }
     var embedLogo by remember { mutableStateOf(false) }
     var qrSize by remember { mutableStateOf(240f) }
+    var sizeInputText by remember { mutableStateOf("240") }
+    
+    var customStartHex by remember { mutableStateOf("#FF5722") }
+    var customEndHex by remember { mutableStateOf("#E91E63") }
     
     val gradientColors = when (selectedGradientPreset) {
         1 -> listOf(Color(0xFFFF5722), Color(0xFFE91E63)) // Sunset
         2 -> listOf(Color(0xFF00E676), Color(0xFF2979FF)) // Ocean
         3 -> listOf(Color(0xFF2196F3), Color(0xFFE040FB)) // Neon
+        4 -> {
+            val start = parseHexColor(customStartHex, Color.Black)
+            val end = parseHexColor(customEndHex, Color.Black)
+            listOf(start, end)
+        }
         else -> null
     }
 
@@ -313,9 +346,9 @@ fun GenerateScreen() {
         Spacer(modifier = Modifier.height(6.dp))
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
         ) {
-            val presets = listOf("Solid Black", "Sunset", "Ocean", "Neon")
+            val presets = listOf("Solid Black", "Sunset", "Ocean", "Neon", "Custom")
             presets.forEachIndexed { index, label ->
                 val isSelected = selectedGradientPreset == index
                 ElevatedButton(
@@ -333,6 +366,30 @@ fun GenerateScreen() {
         }
         
         Spacer(modifier = Modifier.height(16.dp))
+
+        // Custom Hex inputs if "Custom" is selected
+        if (selectedGradientPreset == 4) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                OutlinedTextField(
+                    value = customStartHex,
+                    onValueChange = { customStartHex = it },
+                    label = { Text("Start Color (Hex)") },
+                    modifier = Modifier.weight(1f),
+                    singleLine = true
+                )
+                OutlinedTextField(
+                    value = customEndHex,
+                    onValueChange = { customEndHex = it },
+                    label = { Text("End Color (Hex)") },
+                    modifier = Modifier.weight(1f),
+                    singleLine = true
+                )
+            }
+            Spacer(modifier = Modifier.height(16.dp))
+        }
         
         // Logo Toggle
         Row(
@@ -349,21 +406,43 @@ fun GenerateScreen() {
         
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Size slider
+        // Size slider and Custom Size input field
         Column(modifier = Modifier.fillMaxWidth()) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("QR Code Size", style = MaterialTheme.typography.bodyMedium)
-                Text("${qrSize.toInt()} dp", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+                Text("QR Code Size (dp)", style = MaterialTheme.typography.bodyMedium)
+                OutlinedTextField(
+                    value = sizeInputText,
+                    onValueChange = { newValue ->
+                        if (newValue.all { it.isDigit() } && newValue.length <= 3) {
+                            sizeInputText = newValue
+                            newValue.toIntOrNull()?.let { parsed ->
+                                if (parsed in 100..400) {
+                                    qrSize = parsed.toFloat()
+                                }
+                            }
+                        }
+                    },
+                    modifier = Modifier.width(80.dp),
+                    singleLine = true,
+                    textStyle = MaterialTheme.typography.bodyMedium,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                        unfocusedBorderColor = Color.DarkGray
+                    )
+                )
             }
             Slider(
                 value = qrSize,
-                onValueChange = { qrSize = it },
-                valueRange = 120f..300f,
-                steps = 5
+                onValueChange = { 
+                    qrSize = it
+                    sizeInputText = it.toInt().toString()
+                },
+                valueRange = 100f..400f,
+                steps = 6
             )
         }
 
